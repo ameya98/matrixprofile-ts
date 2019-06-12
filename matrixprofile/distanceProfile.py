@@ -92,7 +92,7 @@ def mass_distance_profile_parallel(indices, tsA=None, tsB=None, m=None):
     return distance_profiles
 
 
-def STOMPDistanceProfile(tsA, idx, m, tsB, dot_first, dp, mean, std):
+def STOMPDistanceProfile(tsA, idx, m, tsB, dot_first, dp, mean, std, std_noise=0):
     """
     Returns the distance profile of a query within tsA against the time series tsB using the even more efficient iterative STOMP calculation. Note that the method requires a pre-calculated 'initial' sliding dot product.
 
@@ -117,14 +117,14 @@ def STOMPDistanceProfile(tsA, idx, m, tsB, dot_first, dp, mean, std):
 
     # Calculate the first distance profile via MASS
     if idx == 0:
-        distanceProfile = np.real(np.sqrt(mass(query,tsB).astype(complex)))
+        distanceProfile = np.real(np.sqrt(mass(query,tsB,std_noise).astype(complex)))
 
         # Currently re-calculating the dot product separately as opposed to updating all of the mass function...
         dot = slidingDotProduct(query,tsB)
 
     # Calculate all subsequent distance profiles using the STOMP dot product shortcut
     else:
-        res, dot = massStomp(query,tsB,dot_first,dp,idx,mean,std)
+        res, dot = massStomp(query,tsB,dot_first,dp,idx,mean,std, std_noise)
         distanceProfile = np.real(np.sqrt(res.astype(complex)))
 
     if selfJoin:

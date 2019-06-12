@@ -10,7 +10,7 @@ range = getattr(__builtins__, 'xrange', range)
 import numpy as np
 import numpy.fft as fft
 
-def zNormalize(ts, znorm_threshold):
+def zNormalize(ts, znorm_threshold=0):
     """
     Returns a z-normalized version of a time series.
 
@@ -157,7 +157,7 @@ def DotProductStomp(ts,m,dot_first,dot_prev,order):
     return dot
 
 
-def mass(query,ts):
+def mass(query, ts, std_noise=0):
     """
     Calculates Mueen's ultra-fast Algorithm for Similarity Search (MASS): a Euclidian distance similarity search algorithm. Note that we are returning the square of MASS.
 
@@ -167,20 +167,21 @@ def mass(query,ts):
     :ts: Time series to compare against query.
     """
 
-    #query_normalized = zNormalize(np.copy(query))
     m = len(query)
     q_mean = np.mean(query)
     q_std = np.std(query)
     mean, std = movmeanstd(ts,m)
     dot = slidingDotProduct(query,ts)
 
-    #res = np.sqrt(2*m*(1-(dot-m*mean*q_mean)/(m*std*q_std)))
     res = 2*m*(1-(dot-m*mean*q_mean)/(m*std*q_std))
 
+    # Noise correction.
+    res -= (2 + 2 * m) * np.square(std_noise / np.maximum(q_std, std))
 
     return res
 
-def massStomp(query,ts,dot_first,dot_prev,index,mean,std):
+
+def massStomp(query,ts,dot_first,dot_prev,index,mean,std, std_noise=0):
     """
     Calculates Mueen's ultra-fast Algorithm for Similarity Search (MASS) between a query and timeseries using the STOMP dot product speedup. Note that we are returning the square of MASS.
 
@@ -195,10 +196,14 @@ def massStomp(query,ts,dot_first,dot_prev,index,mean,std):
     std: Array containing the standard deviation of every subsequence in ts.
     """
     m = len(query)
+    q_std = np.std(query)
     dot = DotProductStomp(ts,m,dot_first,dot_prev,index)
 
-    #Return both the MASS calcuation and the dot product
+    # Return both the MASS calcuation and the dot product
     res = 2*m*(1-(dot-m*mean[index]*mean)/(m*std[index]*std))
+
+    # Noise correction.
+    res -= (2 + 2 * m) * np.square(std_noise / np.maximum(q_std, std))
 
     return res, dot
 
