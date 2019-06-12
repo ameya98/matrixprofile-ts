@@ -10,7 +10,7 @@ range = getattr(__builtins__, 'xrange', range)
 import numpy as np
 import numpy.fft as fft
 
-def zNormalize(ts):
+def zNormalize(ts, znorm_threshold):
     """
     Returns a z-normalized version of a time series.
 
@@ -25,7 +25,8 @@ def zNormalize(ts):
     if std == 0:
         raise ValueError("The Standard Deviation cannot be zero")
     else:
-        ts /= std
+        if std >= znorm_threshold:
+            ts /= std
 
     return ts
 
