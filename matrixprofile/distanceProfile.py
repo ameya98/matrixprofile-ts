@@ -44,7 +44,7 @@ def naiveDistanceProfile(tsA, idx, m, tsB=None):
     return dp, np.full(n - m + 1, idx, dtype=float)
 
 
-def massDistanceProfile(tsA, idx, m, tsB=None, std_noise=0):
+def massDistanceProfile(tsA, idx, m, tsB=None, std_noise=0, exclusion_zone_fraction=1):
     """
     Returns the distance profile of a query within tsA against the time series tsB using the more efficient MASS comparison.
 
@@ -65,14 +65,15 @@ def massDistanceProfile(tsA, idx, m, tsB=None, std_noise=0):
     n = len(tsB)
     distanceProfile = np.sqrt(mass(query, tsB, std_noise=std_noise))
     if selfJoin:
-        trivialMatchRange = (int(max(0, idx - m)), int(min(idx + m, n)))
+        exclusion_zone = np.floor(exclusion_zone_fraction * m).astype(int)
+        trivialMatchRange = (max(0, idx - exclusion_zone), min(idx + exclusion_zone, n))
         distanceProfile[trivialMatchRange[0]:trivialMatchRange[1]] = np.inf
 
     # Both the distance profile and corresponding matrix profile index (which should just have the current index)
     return distanceProfile, np.full(n-m+1, idx, dtype=float)
 
 
-def mass_distance_profile_parallel(indices, tsA=None, tsB=None, m=None, std_noise=0):
+def mass_distance_profile_parallel(indices, tsA=None, tsB=None, m=None, std_noise=0, exclusion_zone_fraction=1):
     """
     Computes distance profiles for the given indices either via self join or similarity search.
 
@@ -87,12 +88,12 @@ def mass_distance_profile_parallel(indices, tsA=None, tsB=None, m=None, std_nois
     distance_profiles = []
 
     for index in indices:
-        distance_profiles.append(massDistanceProfile(tsA, index, m, tsB=tsB, std_noise=std_noise))
+        distance_profiles.append(massDistanceProfile(tsA, index, m, tsB=tsB, std_noise=std_noise, exclusion_zone_fraction=exclusion_zone_fraction))
 
     return distance_profiles
 
 
-def STOMPDistanceProfile(tsA, idx, m, tsB, dot_first, dp, mean, std, std_noise=0):
+def STOMPDistanceProfile(tsA, idx, m, tsB, dot_first, dp, mean, std, std_noise=0, exclusion_zone_fraction=1):
     """
     Returns the distance profile of a query within tsA against the time series tsB using the even more efficient iterative STOMP calculation. Note that the method requires a pre-calculated 'initial' sliding dot product.
 
@@ -129,7 +130,8 @@ def STOMPDistanceProfile(tsA, idx, m, tsB, dot_first, dp, mean, std, std_noise=0
         distanceProfile = np.sqrt(res)
 
     if selfJoin:
-        trivialMatchRange = (int(max(0, idx - m)), int(min(idx + m, n)))
+        exclusion_zone = np.floor(exclusion_zone_fraction * m).astype(int)
+        trivialMatchRange = (max(0, idx - exclusion_zone), min(idx + exclusion_zone, n))
         distanceProfile[trivialMatchRange[0]:trivialMatchRange[1]] = np.inf
 
     # Both the distance profile and corresponding matrix profile index (which should just have the current index)
