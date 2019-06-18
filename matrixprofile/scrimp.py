@@ -370,17 +370,9 @@ def scrimp_plus_plus(ts, window_size, step_size_fraction=0.25, runtime=None, ran
         # Apply exclusion zone.
         distance_profile = apply_exclusion_zone(idx, exclusion_zone, profile_len, distance_profile)
 
-        if not np.all(mp_index < profile_len):
-            print(mp_index[mp_index >= profile_len], profile_len, ts_len, idx)
-            raise ValueError
-
         # Find and store nearest neighbor.
         matrix_profile, mp_index, idx_nn = find_and_store_nn(
             iteration, idx, matrix_profile, mp_index, distance_profile)
-
-        if not np.all(mp_index < profile_len):
-            print(mp_index[mp_index >= profile_len], profile_len, ts_len, idx)
-            raise ValueError
 
         # Compute distances between queries starting close to this index, and queries starting close to the nearest neighbour.
         idx_diff = calc_idx_diff(idx, idx_nn)
