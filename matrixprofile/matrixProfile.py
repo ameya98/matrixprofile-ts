@@ -279,7 +279,7 @@ def stomp(tsA, m, tsB=None, std_noise=0):
     m: Length of subsequence to compare.
     tsB: Time series to compare the query against. Note that, if no value is provided, tsB = tsA by default.
     """
-    return _matrixProfile_stomp(tsA,m,order.linearOrder,distanceProfile.STOMPDistanceProfile,tsB, std_noise)
+    return _matrixProfile_stomp(tsA,m,order.linearOrder,distanceProfile.STOMPDistanceProfile,tsB, std_noise=std_noise)
 
 
 if __name__ == "__main__":
