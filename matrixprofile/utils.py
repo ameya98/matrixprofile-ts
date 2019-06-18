@@ -180,6 +180,9 @@ def mass(query, ts, std_noise=0):
     # Noise correction.
     res -= (2 + 2 * m) * np.square(std_noise / np.maximum(q_std, std))
 
+    # Correct negative values.
+    res[res < 0] = 0
+
     return res
 
 
@@ -206,6 +209,9 @@ def massStomp(query,ts,dot_first,dot_prev,index,mean,std, std_noise=0):
 
     # Noise correction.
     res -= (2 + 2 * m) * np.square(std_noise / np.maximum(q_std, std))
+
+    # Correct negative values.
+    res[res < 0] = 0
 
     return res, dot
 
