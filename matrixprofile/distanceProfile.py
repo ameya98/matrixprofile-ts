@@ -44,7 +44,7 @@ def naiveDistanceProfile(tsA, idx, m, tsB=None):
     return dp, np.full(n - m + 1, idx, dtype=float)
 
 
-def massDistanceProfile(tsA, idx, m, tsB=None):
+def massDistanceProfile(tsA, idx, m, tsB=None, std_noise=0):
     """
     Returns the distance profile of a query within tsA against the time series tsB using the more efficient MASS comparison.
 
@@ -72,7 +72,7 @@ def massDistanceProfile(tsA, idx, m, tsB=None):
     return distanceProfile, np.full(n-m+1,idx,dtype=float)
 
 
-def mass_distance_profile_parallel(indices, tsA=None, tsB=None, m=None):
+def mass_distance_profile_parallel(indices, tsA=None, tsB=None, m=None, std_noise=0):
     """
     Computes distance profiles for the given indices either via self join or similarity search.
 
@@ -82,11 +82,12 @@ def mass_distance_profile_parallel(indices, tsA=None, tsB=None, m=None):
     tsA: Time series containing the query for which to calculate the distance profile.
     tsB: Time series to compare the query against. Note that, for the time being, only tsB = tsA is allowed
     m: Length of query.
+    std_noise: Noise standard deviation for error correction.
     """
     distance_profiles = []
 
     for index in indices:
-        distance_profiles.append(massDistanceProfile(tsA, index, m, tsB=tsB))
+        distance_profiles.append(massDistanceProfile(tsA, index, m, tsB=tsB, std_noise=std_noise))
 
     return distance_profiles
 
@@ -105,6 +106,7 @@ def STOMPDistanceProfile(tsA, idx, m, tsB, dot_first, dp, mean, std, std_noise=0
     dp: The dot product between tsA and the query starting at index m-1
     mean: Array containing the mean of every subsequence of length m in tsA (moving window)
     std: Array containing the mean of every subsequence of length m in tsA (moving window)
+    std_noise: Noise standard deviation for error correction.
     """
 
     selfJoin = is_self_join(tsA, tsB)
