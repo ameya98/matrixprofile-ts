@@ -9,6 +9,10 @@ Read the Target blog post [here](https://tech.target.com/2018/12/11/matrix-profi
 
 Further academic description can be found [here](https://www.cs.ucr.edu/~eamonn/MatrixProfile.html).
 
+This is a fork that has certain differences:
+- Noise correction has been implemented.
+- The definition of trivial matches here does not allow for any overlap.
+
 ## Contents
 - [Installation](#installation)
 - [Quick start](#quick-start)
