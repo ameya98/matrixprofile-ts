@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 """
-This module consists of all code to implement the SCRIMP++ algorithm. SCRIMP++ 
-is an anytime algorithm that computes the matrix profile for a given time 
+This module consists of all code to implement the SCRIMP++ algorithm. SCRIMP++
+is an anytime algorithm that computes the matrix profile for a given time
 series (ts) over a given window size (m).
 
-This algorithm was originally created at the University of California 
+This algorithm was originally created at the University of California
 Riverside. For further academic understanding, please review this paper:
 
 Matrix Proﬁle XI: SCRIMP++: Time Series Motif Discovery at Interactive
@@ -36,8 +36,8 @@ def fast_find_nn_pre(ts, m):
     X = np.fft.fft(ts)
     cum_sumx = np.cumsum(ts)
     cum_sumx2 = np.cumsum(np.power(ts, 2))
-    sumx = cum_sumx[m-1:n] - np.insert(cum_sumx[0:n-m], 0, 0)
-    sumx2 = cum_sumx2[m-1:n] - np.insert(cum_sumx2[0:n-m], 0, 0)
+    sumx = cum_sumx[m - 1:n] - np.insert(cum_sumx[0:n - m], 0, 0)
+    sumx2 = cum_sumx2[m - 1:n] - np.insert(cum_sumx2[0:n - m], 0, 0)
     meanx = sumx / m
     sigmax2 = (sumx2 / m) - np.power(meanx, 2)
     sigmax = np.sqrt(sigmax2)
@@ -48,9 +48,9 @@ def fast_find_nn_pre(ts, m):
 def calc_distance_profile(X, y, n, m, meanx, sigmax, std_noise=0):
     # reverse the query
     y = np.flip(y, 0)
-   
+
     # make y same size as ts with zero fill
-    y = np.concatenate([y, np.zeros(n-m)])
+    y = np.concatenate([y, np.zeros(n - m)])
 
     # main trick of getting dot product in O(n log n) time
     Y = np.fft.fft(y)
@@ -77,39 +77,14 @@ def calc_distance_profile(X, y, n, m, meanx, sigmax, std_noise=0):
     return np.real(np.sqrt(dist))
 
 
-def calc_exclusion_zone(window_size):
-    return window_size
-
-
-def calc_step_size(window_size, step_size):
-    return int(math.floor(window_size * step_size))
-
-
-def calc_profile_len(n, window_size):
-    return n - window_size + 1
-
-
-def next_subsequence(ts, idx, m):
-    return ts[idx:idx + m]
-
-
-def calc_exclusion_start(idx, exclusion_zone):
-    return int(np.max([0, idx - exclusion_zone]))
-
-
-def calc_exclusion_stop(idx, exclusion_zone, profile_len):
-    return int(np.min([profile_len, idx + exclusion_zone]))
-
-
 def apply_exclusion_zone(idx, exclusion_zone, profile_len, distance_profile):
-    exc_start = calc_exclusion_start(idx, exclusion_zone)
-    exc_stop = calc_exclusion_stop(idx, exclusion_zone, profile_len)
+    exc_start = np.maximum(0, idx - exclusion_zone)
+    exc_stop = np.maximum(profile_len, idx + exclusion_zone)
     distance_profile[exc_start:exc_stop] = np.inf
-
     return distance_profile
 
 
-def find_and_store_nn(iteration, idx, matrix_profile, mp_index, 
+def find_and_store_nn(iteration, idx, matrix_profile, mp_index,
                       distance_profile):
     if iteration == 0:
         matrix_profile = distance_profile
@@ -132,8 +107,7 @@ def calc_idx_diff(idx, idx_nn):
 
 
 def calc_dotproduct_idx(dotproduct, m, mp, idx, sigmax, idx_nn, meanx):
-    dotproduct[idx] = (m - mp[idx] ** 2 / 2) * \
-        sigmax[idx] * sigmax[idx_nn] + m * meanx[idx] * meanx[idx_nn]
+    dotproduct[idx] = (m - mp[idx] ** 2 / 2) * sigmax[idx] * sigmax[idx_nn] + m * meanx[idx] * meanx[idx_nn]
 
     return dotproduct
 
@@ -143,24 +117,24 @@ def calc_end_idx(profile_len, idx, step_size, idx_diff):
 
 
 def calc_dotproduct_end_idx(ts, dp, idx, m, endidx, idx_nn, idx_diff):
-    tmp_a = ts[idx+m:endidx+m]
-    tmp_b = ts[idx_nn+m:endidx+m+idx_diff]
+    tmp_a = ts[idx + m:endidx + m]
+    tmp_b = ts[idx_nn + m:endidx + m + idx_diff]
     tmp_c = ts[idx:endidx]
-    tmp_d = ts[idx_nn:endidx+idx_diff]
+    tmp_d = ts[idx_nn:endidx + idx_diff]
     tmp_f = tmp_a * tmp_b - tmp_c * tmp_d
 
-    dp[idx+1:endidx+1] = dp[idx] + np.cumsum(tmp_f)
+    dp[idx + 1:endidx + 1] = dp[idx] + np.cumsum(tmp_f)
 
     return dp
 
 
-def calc_refine_distance_end_idx(refine_distance, dp, idx, endidx, meanx, 
+def calc_refine_distance_end_idx(refine_distance, dp, idx, endidx, meanx,
                                  sigmax, idx_nn, idx_diff, m, std_noise=0):
-    tmp_a = dp[idx+1:endidx+1]
-    tmp_b = meanx[idx+1:endidx+1]
-    tmp_c = meanx[idx_nn+1:endidx+idx_diff+1]
-    tmp_d = sigmax[idx+1:endidx+1]
-    tmp_e = sigmax[idx_nn+1:endidx+idx_diff+1]
+    tmp_a = dp[idx + 1:endidx + 1]
+    tmp_b = meanx[idx + 1:endidx + 1]
+    tmp_c = meanx[idx_nn + 1:endidx + idx_diff + 1]
+    tmp_d = sigmax[idx + 1:endidx + 1]
+    tmp_e = sigmax[idx_nn + 1:endidx + idx_diff + 1]
     tmp_f = tmp_b * tmp_c
     tmp_g = tmp_d * tmp_e
     tmp_h = m - (tmp_a - m * tmp_f) / tmp_g
@@ -174,7 +148,7 @@ def calc_refine_distance_end_idx(refine_distance, dp, idx, endidx, meanx,
     # Correct negative values.
     dist[dist < 0] = 0
 
-    refine_distance[idx+1:endidx+1] = np.sqrt(dist)
+    refine_distance[idx + 1:endidx + 1] = np.sqrt(dist)
 
     return refine_distance
 
@@ -183,40 +157,32 @@ def calc_begin_idx(idx, step_size, idx_diff):
     return np.max([0, idx - step_size + 1, 2 - idx_diff])
 
 
-def calc_dotproduct_begin_idx(ts, dp, beginidx, idx, idx_diff, m, 
+def calc_dotproduct_begin_idx(ts, dp, beginidx, idx, idx_diff, m,
                               idx_nn):
-    indices = list(range(idx - 1, beginidx - 1, -1))    
-
-    if not indices:
-        return dp
-
+    indices = np.arange(idx - 1, beginidx - 1, -1)
     tmp_a = ts[indices]
-    indices_b = list(range(idx_nn - 1, beginidx + idx_diff - 1, -1))
-    tmp_b = ts[indices_b]
-    indices_c = list(range(idx + m - 1, beginidx + m - 1, -1))
-    tmp_c = ts[indices_c]
-    indices_d = list(range(idx_nn - 1 + m, beginidx + idx_diff + m - 1, -1))
-    tmp_d = ts[indices_d]
+    tmp_b = ts[np.arange(idx_nn - 1, beginidx + idx_diff - 1, -1)]
+    tmp_c = ts[np.arange(idx + m - 1, beginidx + m - 1, -1)]
+    tmp_d = ts[np.arange(idx_nn - 1 + m, beginidx + idx_diff + m - 1, -1)]
 
-    dp[indices] = dp[idx] + \
-        np.cumsum((tmp_a * tmp_b) - (tmp_c * tmp_d))
+    dp[indices] = dp[idx] + np.cumsum((tmp_a * tmp_b) - (tmp_c * tmp_d))
 
     return dp
 
 
-def calc_refine_distance_begin_idx(refine_distance, dp, beginidx, idx, 
+def calc_refine_distance_begin_idx(refine_distance, dp, beginidx, idx,
                                    idx_diff, idx_nn, sigmax, meanx, m, std_noise=0):
-    if not (beginidx < idx):
+    if beginidx >= idx:
         return refine_distance
 
     tmp_a = dp[beginidx:idx]
     tmp_b = meanx[beginidx:idx]
-    tmp_c = meanx[beginidx+idx_diff:idx_nn]
+    tmp_c = meanx[beginidx + idx_diff:idx_nn]
     tmp_d = sigmax[beginidx:idx]
-    tmp_e = sigmax[beginidx+idx_diff:idx_nn]
+    tmp_e = sigmax[beginidx + idx_diff:idx_nn]
     tmp_f = tmp_b * tmp_c
     tmp_g = tmp_d * tmp_e
-    tmp_h = (m-(tmp_a - m * tmp_f) / (tmp_g))
+    tmp_h = m - (tmp_a - m * tmp_f) / tmp_g
     tmp_h *= 2
 
     dist = tmp_h
@@ -253,7 +219,7 @@ def apply_update_positions(matrix_profile, mp_index, refine_distance, beginidx,
 
 
 def calc_curlastz(ts, m, n, idx, profile_len, curlastz):
-    curlastz[idx] = np.sum(ts[0:m] * ts[idx:idx+m])
+    curlastz[idx] = np.sum(ts[0:m] * ts[idx:idx + m])
 
     tmp_a = ts[m:n - idx]
     tmp_b = ts[idx + m:n]
@@ -261,18 +227,18 @@ def calc_curlastz(ts, m, n, idx, profile_len, curlastz):
     tmp_d = ts[idx:profile_len - 1]
     tmp_e = tmp_a * tmp_b
     tmp_f = tmp_c * tmp_d
-    curlastz[idx+1:profile_len] = curlastz[idx] + np.cumsum(tmp_e - tmp_f)
+    curlastz[idx + 1:profile_len] = curlastz[idx] + np.cumsum(tmp_e - tmp_f)
 
     return curlastz
 
 
-def calc_curdistance(curlastz, meanx, sigmax, idx, profile_len, m, 
+def calc_curdistance(curlastz, meanx, sigmax, idx, profile_len, m,
                      curdistance, std_noise=0):
-    tmp_a = curlastz[idx:profile_len+1]
+    tmp_a = curlastz[idx:profile_len + 1]
     tmp_b = meanx[idx:profile_len]
-    tmp_c = meanx[0:profile_len-idx]
+    tmp_c = meanx[0:profile_len - idx]
     tmp_d = sigmax[idx:profile_len]
-    tmp_e = sigmax[0:profile_len-idx]
+    tmp_e = sigmax[0:profile_len - idx]
     tmp_f = tmp_b * tmp_c
     tmp_g = m - (tmp_a - m * tmp_f) / (tmp_d * tmp_e)
     tmp_g *= 2
@@ -295,7 +261,7 @@ def time_is_exceeded(start_time, runtime):
     Returns
     -------
     bool
-        Whether or not hte runtime has exceeded.
+        Whether or not the runtime has exceeded.
     """
     elapsed = time.time() - start_time
     exceeded = runtime is not None and elapsed >= runtime
@@ -308,13 +274,15 @@ def time_is_exceeded(start_time, runtime):
     return exceeded
 
 
-def scrimp_plus_plus(ts, m, step_size=0.25, runtime=None, random_state=None, std_noise=0):
-    """SCRIMP++ is an anytime algorithm that computes the matrix profile for a 
+def scrimp_plus_plus(ts, window_size, step_size_fraction=0.25, runtime=None, random_state=None, std_noise=0,
+                     exclusion_zone_fraction=0.25):
+    """
+    SCRIMP++ is an anytime algorithm that computes the matrix profile for a
     given time series (ts) over a given window size (m). Essentially, it allows
-    for an approximate solution to be provided for quicker analysis. In the 
-    case of this implementation, the runtime is measured based on the wall 
+    for an approximate solution to be provided for quicker analysis. In the
+    case of this implementation, the runtime is measured based on the wall
     clock. If the number of seconds exceeds the runtime, then the approximate
-    solution is returned. If the runtime is None, the exact solution is 
+    solution is returned. If the runtime is None, the exact solution is
     returned.
 
     This algorithm was created at the University of California Riverside. For
@@ -330,156 +298,147 @@ def scrimp_plus_plus(ts, m, step_size=0.25, runtime=None, random_state=None, std
         ----------
         ts : np.ndarray
             The time series to compute the matrix profile for.
-        m : int
+        window_size : int
             The window size.
-        step_size : float, default 0.25
-            The sampling interval for the window. The paper suggest 0.25 is the
-            most practical. It should be a float value between 0 and 1.
+        step_size_fraction : float, default 0.25
+            Fraction that decides the sampling interval for the window. The paper suggests 0.25 is the
+            most practical.
         runtime : int, default None
             The maximum number of seconds based on wall clock time for this
             algorithm to run. It computes the exact solution when it is set to
             None.
         random_state : int, default None
             Set the random seed generator for reproducible results.
+        std_noise: float, default 0
+            Noise standard deviation for noise correction.
+        exclusion_zone_fraction: float, default 0.25
+            Fraction of the window size deciding the exclusion zone for trivial matches.
 
         Returns
         -------
         (np.array, np.array)
             The matrix profile and the matrix profile index respectively.
     """
-    # start the timer here
+    # Start the timer here.
     start_time = time.time()
 
-    # validate step_size
-    if not isinstance(step_size, float) or step_size > 1 or step_size < 0:
-        raise ValueError('Parameter step_size should be a float between 0 and 1.')
+    # Validate step_size.
+    if step_size_fraction < 0:
+        raise ValueError('Parameter step_size should be non-negative.')
 
-    # validate runtime
-    if runtime is not None and (not isinstance(runtime, int) or runtime < 1):
-        raise ValueError('Parameter runtime should be a valid positive integer.')
-
-    # validate random_state
+    # Validate random_state.
     if random_state is not None:
         try:
             np.random.seed(random_state)
         except ValueError:
             raise ValueError('Invalid random_state value given.')
-    
+
     ts_len = len(ts)
 
-    # set the trivial match range
-    exclusion_zone = calc_exclusion_zone(m)
-
-    # value checking
-    if m > ts_len / 2:
+    # Validate window size.
+    if window_size > ts_len / 2:
         raise ValueError('Time series is too short relative to desired subsequence length.')
 
-    if m < 4:
+    if window_size < 4:
         raise ValueError('Window size must be at least 4.')
 
-    # initialization
-    step_size = calc_step_size(m, step_size)
-    profile_len = calc_profile_len(ts_len, m)
+    # Set the trivial match range.
+    exclusion_zone = np.floor(exclusion_zone_fraction * window_size).astype(int)
 
+    # Initialization.
+    step_size = np.ceil(window_size * step_size_fraction).astype(int)
+
+    profile_len = ts_len - window_size + 1
     matrix_profile = np.zeros(profile_len)
-    mp_index = np.zeros(profile_len, dtype='int32')
+    mp_index = np.zeros(profile_len).astype(int)
 
-    X, n, sumx2, sumx, meanx, sigmax2, sigmax = fast_find_nn_pre(ts, m)
+    X, n, sumx2, sumx, meanx, sigmax2, sigmax = fast_find_nn_pre(ts, window_size)
 
-    ###########################
-    # PreSCRIMP
-    #
-    # compute distance profile
+    # PreSCRIMP.
     dotproduct = np.zeros(profile_len)
     refine_distance = np.full(profile_len, np.inf)
-    orig_index = np.arange(profile_len)
-
-    compute_order = list(range(0, profile_len, step_size))
+    compute_order = np.arange(0, profile_len, step_size).astype(int)
     np.random.shuffle(compute_order)
 
     for iteration, idx in enumerate(compute_order):
-        # compute distance profile
-        subsequence = next_subsequence(ts, idx, m)
-        
-        distance_profile = calc_distance_profile(X, subsequence, n, m, meanx,
+        # Compute distance profile.
+        subsequence = ts[idx: idx + window_size]
+
+        distance_profile = calc_distance_profile(X, subsequence, n, window_size, meanx,
                                                  sigmax, std_noise=std_noise)
-        
-        # apply exclusion zone
-        distance_profile = apply_exclusion_zone(
-            idx, exclusion_zone, profile_len, distance_profile)
-        
-        # find and store nearest neighbor
+
+        # Apply exclusion zone.
+        distance_profile = apply_exclusion_zone(idx, exclusion_zone, profile_len, distance_profile)
+
+        if not np.all(mp_index < profile_len):
+            print(mp_index[mp_index >= profile_len], profile_len, ts_len, idx)
+            raise ValueError
+
+        # Find and store nearest neighbor.
         matrix_profile, mp_index, idx_nn = find_and_store_nn(
             iteration, idx, matrix_profile, mp_index, distance_profile)
 
+        if not np.all(mp_index < profile_len):
+            print(mp_index[mp_index >= profile_len], profile_len, ts_len, idx)
+            raise ValueError
+
+        # Compute distances between queries starting close to this index, and queries starting close to the nearest neighbour.
         idx_diff = calc_idx_diff(idx, idx_nn)
-        dotproduct = calc_dotproduct_idx(dotproduct, m, matrix_profile, idx,
+        dotproduct = calc_dotproduct_idx(dotproduct, window_size, matrix_profile, idx,
                                          sigmax, idx_nn, meanx)
 
         endidx = calc_end_idx(profile_len, idx, step_size, idx_diff)
 
-        dotproduct = calc_dotproduct_end_idx(ts, dotproduct, idx, m,
+        dotproduct = calc_dotproduct_end_idx(ts, dotproduct, idx, window_size,
                                              endidx, idx_nn, idx_diff)
 
-        refine_distance = calc_refine_distance_end_idx(
-            refine_distance, dotproduct, idx, endidx, meanx, sigmax, idx_nn,
-            idx_diff, m, std_noise=std_noise)
-        
+        refine_distance = calc_refine_distance_end_idx(refine_distance, dotproduct, idx, endidx, meanx, sigmax, idx_nn,
+                                                       idx_diff, window_size, std_noise=std_noise)
+
         beginidx = calc_begin_idx(idx, step_size, idx_diff)
 
-        dotproduct = calc_dotproduct_begin_idx(
-            ts, dotproduct, beginidx, idx, idx_diff, m, idx_nn)
+        dotproduct = calc_dotproduct_begin_idx(ts, dotproduct, beginidx, idx, idx_diff, window_size, idx_nn)
 
-        refine_distance = calc_refine_distance_begin_idx(
-            refine_distance, dotproduct, beginidx, idx, idx_diff, idx_nn, 
-            sigmax, meanx, m, std_noise=std_noise)
+        refine_distance = calc_refine_distance_begin_idx(refine_distance, dotproduct, beginidx, idx, idx_diff, idx_nn,
+                                                         sigmax, meanx, window_size, std_noise=std_noise)
 
-        matrix_profile, mp_index = apply_update_positions(matrix_profile, 
-                                                          mp_index, 
-                                                          refine_distance, 
-                                                          beginidx, 
-                                                          endidx, 
-                                                          orig_index, idx_diff)
+        # Update matrix profile if we can.
+        matrix_profile, mp_index = apply_update_positions(matrix_profile, mp_index,
+                                                          refine_distance, beginidx, endidx, idx_diff)
 
-        # check if time is up
-        if time_is_exceeded(start_time, runtime):            
-            break
+        # Stop if time is up.
+        if time_is_exceeded(start_time, runtime):
+            return matrix_profile, mp_index
 
-    if not time_is_exceeded(start_time, runtime):
-        ###########################
-        # SCRIMP
-        #
-        compute_order = orig_index[orig_index > exclusion_zone]
-        np.random.shuffle(compute_order)
+    # SCRIMP.
+    compute_order = np.arange(profile_len)
+    np.random.shuffle(compute_order)
 
-        curlastz = np.zeros(profile_len)
-        curdistance = np.zeros(profile_len)
-        dist1 = np.full(profile_len, np.inf)
-        dist2 = np.full(profile_len, np.inf)
+    curlastz = np.zeros(profile_len)
+    curdistance = np.zeros(profile_len)
+    dist1 = np.full(profile_len, np.inf)
+    dist2 = np.full(profile_len, np.inf)
 
-        for idx in compute_order:
-            curlastz = calc_curlastz(ts, m, n, idx, profile_len, curlastz)
-            curdistance = calc_curdistance(curlastz, meanx, sigmax, idx, 
-                                           profile_len, m, curdistance, std_noise=std_noise)
+    for idx in compute_order:
+        curlastz = calc_curlastz(ts, window_size, n, idx, profile_len, curlastz)
+        curdistance = calc_curdistance(curlastz, meanx, sigmax, idx,
+                                       profile_len, window_size, curdistance, std_noise=std_noise)
 
-            dist1[0:idx-1] = np.inf
-            dist1[idx:profile_len] = curdistance[idx:profile_len]
+        dist1[0: idx] = np.inf
+        dist1[idx:profile_len] = curdistance[idx:profile_len]
 
-            dist2[0:profile_len - idx] = curdistance[idx:profile_len]
-            dist2[profile_len - idx + 2:profile_len] = np.inf
+        dist2[0: profile_len - idx] = curdistance[idx:profile_len]
+        dist2[profile_len - idx:profile_len] = np.inf
 
-            loc1 = dist1 < matrix_profile
-            if loc1.any():
-                matrix_profile[loc1] = dist1[loc1]
-                mp_index[loc1] = orig_index[loc1] - idx + 1
+        loc1 = dist1 < matrix_profile
+        matrix_profile[loc1] = dist1[loc1]
+        mp_index[loc1] = np.arange(profile_len)[loc1] - idx + 1
 
-            loc2 = dist2 < matrix_profile
-            if loc2.any():
-                matrix_profile[loc2] = dist2[loc2]
-                mp_index[loc2] = orig_index[loc2] + idx - 1
+        loc2 = dist2 < matrix_profile
+        matrix_profile[loc2] = dist2[loc2]
+        mp_index[loc2] = np.arange(profile_len)[loc2] + idx - 1
 
-            # check if time is up
-            if time_is_exceeded(start_time, runtime):             
-                break
+        # Stop if time is up.
+        if time_is_exceeded(start_time, runtime):
+            return matrix_profile, mp_index
 
-    return matrix_profile, mp_index
