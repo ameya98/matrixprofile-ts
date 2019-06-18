@@ -205,15 +205,14 @@ def apply_update_positions(matrix_profile, mp_index, refine_distance, beginidx,
     # j - i == idx_diff
 
     update_pos1 = np.where(refine_distance[beginidx: endidx + 1] < matrix_profile[beginidx: endidx + 1])[0]
-
+    update_pos1 += beginidx
     matrix_profile[update_pos1] = refine_distance[update_pos1]
     mp_index[update_pos1] = update_pos1 + idx_diff
 
-    update_pos2 = \
-    np.where(refine_distance[beginidx: endidx + 1] < matrix_profile[beginidx + idx_diff: endidx + idx_diff + 1])[0]
-
+    update_pos2 = np.where(refine_distance[beginidx: endidx + 1] < matrix_profile[beginidx + idx_diff: endidx + idx_diff + 1])[0]
+    update_pos2 += beginidx
     matrix_profile[update_pos2 + idx_diff] = refine_distance[update_pos2]
-    mp_index[update_pos2 + idx_diff] = update_pos2 - idx_diff
+    mp_index[update_pos2 + idx_diff] = update_pos2
 
     return matrix_profile, mp_index
 
