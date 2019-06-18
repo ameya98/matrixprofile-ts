@@ -233,24 +233,21 @@ def calc_refine_distance_begin_idx(refine_distance, dp, beginidx, idx,
 
 
 def apply_update_positions(matrix_profile, mp_index, refine_distance, beginidx,
-                           endidx, orig_index, idx_diff):
-    tmp_a = refine_distance[beginidx:endidx+1]
-    tmp_b = matrix_profile[beginidx:endidx+1]
-    update_pos1 = np.argwhere(tmp_a < tmp_b).flatten()    
+                           endidx, idx_diff):
+    # Following the paper's notation,
+    # d == refine_distance[beginidx: endidx + 1]
+    # j - i == idx_diff
 
-    if len(update_pos1) > 0:        
-        update_pos1 = update_pos1 + beginidx
-        matrix_profile[update_pos1] = refine_distance[update_pos1]
-        mp_index[update_pos1] = orig_index[update_pos1] + idx_diff
+    update_pos1 = np.where(refine_distance[beginidx: endidx + 1] < matrix_profile[beginidx: endidx + 1])[0]
 
-    tmp_a = refine_distance[beginidx:endidx + 1]
-    tmp_b = matrix_profile[beginidx + idx_diff:endidx + idx_diff + 1]
-    update_pos2 = np.argwhere(tmp_a < tmp_b).flatten()
+    matrix_profile[update_pos1] = refine_distance[update_pos1]
+    mp_index[update_pos1] = update_pos1 + idx_diff
 
-    if len(update_pos2) > 0:
-        update_pos2 = update_pos2 + beginidx
-        matrix_profile[update_pos2 + idx_diff] = refine_distance[update_pos2]
-        mp_index[update_pos2 + idx_diff] = orig_index[update_pos2] - idx_diff
+    update_pos2 = \
+    np.where(refine_distance[beginidx: endidx + 1] < matrix_profile[beginidx + idx_diff: endidx + idx_diff + 1])[0]
+
+    matrix_profile[update_pos2 + idx_diff] = refine_distance[update_pos2]
+    mp_index[update_pos2 + idx_diff] = update_pos2 - idx_diff
 
     return matrix_profile, mp_index
 
