@@ -402,7 +402,7 @@ def scrimp_plus_plus(ts, window_size, step_size_fraction=0.25, runtime=None, ran
             return matrix_profile, mp_index
 
     # SCRIMP.
-    compute_order = np.arange(profile_len)
+    compute_order = np.arange(exclusion_zone + 1, profile_len)
     np.random.shuffle(compute_order)
 
     curlastz = np.zeros(profile_len)
