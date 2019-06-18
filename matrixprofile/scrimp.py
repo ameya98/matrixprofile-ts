@@ -169,7 +169,7 @@ def calc_refine_distance_end_idx(refine_distance, dp, idx, endidx, meanx,
     dist = tmp_h
 
     # Noise correction.
-    dist -= (2 + 2 * m) * np.square(std_noise / np.maximum(tmp_d, sigmax))
+    dist -= (2 + 2 * m) * np.square(std_noise / np.maximum(tmp_d, tmp_e))
 
     # Correct negative values.
     dist[dist < 0] = 0
@@ -222,7 +222,7 @@ def calc_refine_distance_begin_idx(refine_distance, dp, beginidx, idx,
     dist = tmp_h
 
     # Noise correction.
-    dist -= (2 + 2 * m) * np.square(std_noise / np.maximum(tmp_d, sigmax))
+    dist -= (2 + 2 * m) * np.square(std_noise / np.maximum(tmp_d, tmp_e))
 
     # Correct negative values.
     dist[dist < 0] = 0
@@ -252,7 +252,7 @@ def apply_update_positions(matrix_profile, mp_index, refine_distance, beginidx,
         matrix_profile[update_pos2 + idx_diff] = refine_distance[update_pos2]
         mp_index[update_pos2 + idx_diff] = orig_index[update_pos2] - idx_diff
 
-    return (matrix_profile, mp_index)
+    return matrix_profile, mp_index
 
 
 def calc_curlastz(ts, m, n, idx, profile_len, curlastz):
@@ -278,7 +278,16 @@ def calc_curdistance(curlastz, meanx, sigmax, idx, profile_len, m,
     tmp_e = sigmax[0:profile_len-idx]
     tmp_f = tmp_b * tmp_c
     tmp_g = m - (tmp_a - m * tmp_f) / (tmp_d * tmp_e)
-    curdistance[idx:profile_len] = np.sqrt(np.abs(2 * tmp_g))
+    tmp_g *= 2
+    dist = tmp_g
+
+    # Noise correction.
+    dist -= (2 + 2 * m) * np.square(std_noise / np.maximum(tmp_d, tmp_e))
+
+    # Correct negative values.
+    dist[dist < 0] = 0
+
+    curdistance[idx:profile_len] = np.sqrt(dist)
 
     return curdistance
 
@@ -454,7 +463,7 @@ def scrimp_plus_plus(ts, m, step_size=0.25, runtime=None, random_state=None, std
         for idx in compute_order:
             curlastz = calc_curlastz(ts, m, n, idx, profile_len, curlastz)
             curdistance = calc_curdistance(curlastz, meanx, sigmax, idx, 
-                                           profile_len, m, curdistance)
+                                           profile_len, m, curdistance, std_noise=std_noise)
 
             dist1[0:idx-1] = np.inf
             dist1[idx:profile_len] = curdistance[idx:profile_len]
