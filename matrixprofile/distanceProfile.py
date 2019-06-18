@@ -69,7 +69,7 @@ def massDistanceProfile(tsA, idx, m, tsB=None, std_noise=0):
         distanceProfile[trivialMatchRange[0]:trivialMatchRange[1]] = np.inf
 
     # Both the distance profile and corresponding matrix profile index (which should just have the current index)
-    return distanceProfile, np.full(n-m+1,idx,dtype=float)
+    return distanceProfile, np.full(n-m+1, idx, dtype=float)
 
 
 def mass_distance_profile_parallel(indices, tsA=None, tsB=None, m=None, std_noise=0):
@@ -133,7 +133,7 @@ def STOMPDistanceProfile(tsA, idx, m, tsB, dot_first, dp, mean, std, std_noise=0
         distanceProfile[trivialMatchRange[0]:trivialMatchRange[1]] = np.inf
 
     # Both the distance profile and corresponding matrix profile index (which should just have the current index)
-    return (distanceProfile,np.full(n-m+1,idx,dtype=float)), dot
+    return (distanceProfile, np.full(n-m+1, idx, dtype=float)), dot
 
 
 if __name__ == "__main__":
