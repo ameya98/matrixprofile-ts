@@ -42,10 +42,10 @@ def fast_find_nn_pre(ts, m):
     sigmax2 = (sumx2 / m) - np.power(meanx, 2)
     sigmax = np.sqrt(sigmax2)
 
-    return (X, n, sumx2, sumx, meanx, sigmax2, sigmax)
+    return X, n, sumx2, sumx, meanx, sigmax2, sigmax
 
 
-def calc_distance_profile(X, y, n, m, meanx, sigmax):
+def calc_distance_profile(X, y, n, m, meanx, sigmax, std_noise=0):
     # reverse the query
     y = np.flip(y, 0)
    
@@ -66,13 +66,19 @@ def calc_distance_profile(X, y, n, m, meanx, sigmax):
 
     dist = (z[m - 1:n] - m * meanx * meany) / (sigmax * sigmay)
     dist = m - dist
-    dist = np.real(2 * dist)
+    dist = 2 * dist
 
-    return np.absolute(np.sqrt(dist))
+    # Noise correction.
+    dist -= (2 + 2 * m) * np.square(std_noise / np.maximum(sigmay, sigmax))
+
+    # Correct negative values.
+    dist[dist < 0] = 0
+
+    return np.real(np.sqrt(dist))
 
 
 def calc_exclusion_zone(window_size):
-    return window_size / 4
+    return window_size
 
 
 def calc_step_size(window_size, step_size):
@@ -98,7 +104,7 @@ def calc_exclusion_stop(idx, exclusion_zone, profile_len):
 def apply_exclusion_zone(idx, exclusion_zone, profile_len, distance_profile):
     exc_start = calc_exclusion_start(idx, exclusion_zone)
     exc_stop = calc_exclusion_stop(idx, exclusion_zone, profile_len)
-    distance_profile[exc_start:exc_stop + 1] = np.inf
+    distance_profile[exc_start:exc_stop] = np.inf
 
     return distance_profile
 
@@ -118,7 +124,7 @@ def find_and_store_nn(iteration, idx, matrix_profile, mp_index,
     mp_index[idx] = idx_min
     idx_nn = mp_index[idx]
 
-    return (matrix_profile, mp_index, idx_nn)
+    return matrix_profile, mp_index, idx_nn
 
 
 def calc_idx_diff(idx, idx_nn):
@@ -133,8 +139,7 @@ def calc_dotproduct_idx(dotproduct, m, mp, idx, sigmax, idx_nn, meanx):
 
 
 def calc_end_idx(profile_len, idx, step_size, idx_diff):
-    return np.min([profile_len - 1, idx + step_size - 1, 
-                  profile_len - idx_diff])
+    return np.min([profile_len - 1, idx + step_size - 1, profile_len - idx_diff + 1])
 
 
 def calc_dotproduct_end_idx(ts, dp, idx, m, endidx, idx_nn, idx_diff):
@@ -150,7 +155,7 @@ def calc_dotproduct_end_idx(ts, dp, idx, m, endidx, idx_nn, idx_diff):
 
 
 def calc_refine_distance_end_idx(refine_distance, dp, idx, endidx, meanx, 
-                                 sigmax, idx_nn, idx_diff, m):
+                                 sigmax, idx_nn, idx_diff, m, std_noise=0):
     tmp_a = dp[idx+1:endidx+1]
     tmp_b = meanx[idx+1:endidx+1]
     tmp_c = meanx[idx_nn+1:endidx+idx_diff+1]
@@ -158,8 +163,18 @@ def calc_refine_distance_end_idx(refine_distance, dp, idx, endidx, meanx,
     tmp_e = sigmax[idx_nn+1:endidx+idx_diff+1]
     tmp_f = tmp_b * tmp_c
     tmp_g = tmp_d * tmp_e
-    tmp_h = (m-(tmp_a - m * tmp_f) / (tmp_g))
-    refine_distance[idx+1:endidx+1] = np.sqrt(np.abs(2 * tmp_h))    
+    tmp_h = m - (tmp_a - m * tmp_f) / tmp_g
+    tmp_h *= 2
+
+    dist = tmp_h
+
+    # Noise correction.
+    dist -= (2 + 2 * m) * np.square(std_noise / np.maximum(tmp_d, sigmax))
+
+    # Correct negative values.
+    dist[dist < 0] = 0
+
+    refine_distance[idx+1:endidx+1] = np.sqrt(dist)
 
     return refine_distance
 
@@ -190,7 +205,7 @@ def calc_dotproduct_begin_idx(ts, dp, beginidx, idx, idx_diff, m,
 
 
 def calc_refine_distance_begin_idx(refine_distance, dp, beginidx, idx, 
-                                   idx_diff, idx_nn, sigmax, meanx, m):
+                                   idx_diff, idx_nn, sigmax, meanx, m, std_noise=0):
     if not (beginidx < idx):
         return refine_distance
 
@@ -202,8 +217,17 @@ def calc_refine_distance_begin_idx(refine_distance, dp, beginidx, idx,
     tmp_f = tmp_b * tmp_c
     tmp_g = tmp_d * tmp_e
     tmp_h = (m-(tmp_a - m * tmp_f) / (tmp_g))
+    tmp_h *= 2
 
-    refine_distance[beginidx:idx] = np.sqrt(np.abs(2 * tmp_h))
+    dist = tmp_h
+
+    # Noise correction.
+    dist -= (2 + 2 * m) * np.square(std_noise / np.maximum(tmp_d, sigmax))
+
+    # Correct negative values.
+    dist[dist < 0] = 0
+
+    refine_distance[beginidx:idx] = np.sqrt(dist)
 
     return refine_distance
 
@@ -246,14 +270,14 @@ def calc_curlastz(ts, m, n, idx, profile_len, curlastz):
 
 
 def calc_curdistance(curlastz, meanx, sigmax, idx, profile_len, m, 
-                     curdistance):
+                     curdistance, std_noise=0):
     tmp_a = curlastz[idx:profile_len+1]
     tmp_b = meanx[idx:profile_len]
     tmp_c = meanx[0:profile_len-idx]
     tmp_d = sigmax[idx:profile_len]
     tmp_e = sigmax[0:profile_len-idx]
     tmp_f = tmp_b * tmp_c
-    tmp_g = (m-(tmp_a - m * tmp_f) / (tmp_d * tmp_e))
+    tmp_g = m - (tmp_a - m * tmp_f) / (tmp_d * tmp_e)
     curdistance[idx:profile_len] = np.sqrt(np.abs(2 * tmp_g))
 
     return curdistance
@@ -278,7 +302,7 @@ def time_is_exceeded(start_time, runtime):
     return exceeded
 
 
-def scrimp_plus_plus(ts, m, step_size=0.25, runtime=None, random_state=None):
+def scrimp_plus_plus(ts, m, step_size=0.25, runtime=None, random_state=None, std_noise=0):
     """SCRIMP++ is an anytime algorithm that computes the matrix profile for a 
     given time series (ts) over a given window size (m). Essentially, it allows
     for an approximate solution to be provided for quicker analysis. In the 
@@ -322,17 +346,17 @@ def scrimp_plus_plus(ts, m, step_size=0.25, runtime=None, random_state=None):
 
     # validate step_size
     if not isinstance(step_size, float) or step_size > 1 or step_size < 0:
-        raise ValueError('step_size should be a float between 0 and 1.')
+        raise ValueError('Parameter step_size should be a float between 0 and 1.')
 
     # validate runtime
     if runtime is not None and (not isinstance(runtime, int) or runtime < 1):
-        raise ValueError('runtime should be a valid positive integer.')
+        raise ValueError('Parameter runtime should be a valid positive integer.')
 
     # validate random_state
     if random_state is not None:
         try:
             np.random.seed(random_state)
-        except:
+        except ValueError:
             raise ValueError('Invalid random_state value given.')
     
     ts_len = len(ts)
@@ -342,11 +366,10 @@ def scrimp_plus_plus(ts, m, step_size=0.25, runtime=None, random_state=None):
 
     # value checking
     if m > ts_len / 2:
-        raise ValueError('Time series is too short relative to desired \
-            subsequence length')
+        raise ValueError('Time series is too short relative to desired subsequence length.')
 
     if m < 4:
-        raise ValueError('Window size must be at least 4')
+        raise ValueError('Window size must be at least 4.')
 
     # initialization
     step_size = calc_step_size(m, step_size)
@@ -373,7 +396,7 @@ def scrimp_plus_plus(ts, m, step_size=0.25, runtime=None, random_state=None):
         subsequence = next_subsequence(ts, idx, m)
         
         distance_profile = calc_distance_profile(X, subsequence, n, m, meanx,
-                                                 sigmax)
+                                                 sigmax, std_noise=std_noise)
         
         # apply exclusion zone
         distance_profile = apply_exclusion_zone(
@@ -394,7 +417,7 @@ def scrimp_plus_plus(ts, m, step_size=0.25, runtime=None, random_state=None):
 
         refine_distance = calc_refine_distance_end_idx(
             refine_distance, dotproduct, idx, endidx, meanx, sigmax, idx_nn,
-            idx_diff, m)
+            idx_diff, m, std_noise=std_noise)
         
         beginidx = calc_begin_idx(idx, step_size, idx_diff)
 
@@ -403,7 +426,7 @@ def scrimp_plus_plus(ts, m, step_size=0.25, runtime=None, random_state=None):
 
         refine_distance = calc_refine_distance_begin_idx(
             refine_distance, dotproduct, beginidx, idx, idx_diff, idx_nn, 
-            sigmax, meanx, m)
+            sigmax, meanx, m, std_noise=std_noise)
 
         matrix_profile, mp_index = apply_update_positions(matrix_profile, 
                                                           mp_index, 
@@ -453,4 +476,4 @@ def scrimp_plus_plus(ts, m, step_size=0.25, runtime=None, random_state=None):
             if time_is_exceeded(start_time, runtime):             
                 break
 
-    return (matrix_profile, mp_index)
+    return matrix_profile, mp_index
