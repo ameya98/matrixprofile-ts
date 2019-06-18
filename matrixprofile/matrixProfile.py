@@ -38,7 +38,7 @@ def _self_join_or_not_preprocess(tsA, tsB, m):
     return np.full(shape, np.inf), np.full(shape, np.inf)
 
 
-def _matrixProfile(tsA, m, orderClass, distanceProfileFunction, tsB=None):
+def _matrixProfile(tsA, m, orderClass, distanceProfileFunction, tsB=None, std_noise=0):
     """
     Core method for calculating the Matrix Profile
 
@@ -56,7 +56,7 @@ def _matrixProfile(tsA, m, orderClass, distanceProfileFunction, tsB=None):
 
     idx=order.next()
     while idx != None:
-        (distanceProfile,querySegmentsID) = distanceProfileFunction(tsA,idx,m,tsB)
+        (distanceProfile,querySegmentsID) = distanceProfileFunction(tsA,idx,m,tsB, std_noise=std_noise)
 
         # Check which of the indices have found a new minimum
         idsToUpdate = distanceProfile < mp
@@ -71,7 +71,7 @@ def _matrixProfile(tsA, m, orderClass, distanceProfileFunction, tsB=None):
     return mp, mpIndex
 
 
-def _stamp_parallel(tsA, m, tsB=None, sampling=0.2, n_threads=-1, random_state=None):
+def _stamp_parallel(tsA, m, tsB=None, sampling=0.2, n_threads=-1, random_state=None, std_noise=0):
     """
     Computes distance profiles in parallel using all CPU cores by default.
     
@@ -103,7 +103,7 @@ def _stamp_parallel(tsA, m, tsB=None, sampling=0.2, n_threads=-1, random_state=N
     
     # create pool of workers and compute
     with multiprocessing.Pool(processes=n_threads) as pool:
-        func = partial(distanceProfile.mass_distance_profile_parallel, tsA=tsA, tsB=tsB, m=m)
+        func = partial(distanceProfile.mass_distance_profile_parallel, tsA=tsA, tsB=tsB, m=m, std_noise=std_noise)
         results = pool.map(func, indices)
     
     # The overall matrix profile is the element-wise minimum of each sub-profile, and each element of the overall
@@ -122,8 +122,8 @@ def _stamp_parallel(tsA, m, tsB=None, sampling=0.2, n_threads=-1, random_state=N
     return mp, mpIndex
 
 
-def _matrixProfile_sampling(tsA, m, orderClass, distanceProfileFunction, tsB=None, sampling=0.2, random_state=None):
-    order = orderClass(len(tsA)-m+1, random_state=random_state)
+def _matrixProfile_sampling(tsA, m, orderClass, distanceProfileFunction, tsB=None, sampling=0.2, random_state=None, std_noise=0):
+    order = orderClass(len(tsA)-m+1, random_state=random_state, std_noise=0)
     mp, mpIndex = _self_join_or_not_preprocess(tsA, tsB, m)
 
     idx=order.next()
@@ -134,7 +134,7 @@ def _matrixProfile_sampling(tsA, m, orderClass, distanceProfileFunction, tsB=Non
     iter_val = 0
 
     while iter_val < iters:
-        (distanceProfile,querySegmentsID) = distanceProfileFunction(tsA,idx,m,tsB)
+        (distanceProfile,querySegmentsID) = distanceProfileFunction(tsA,idx,m,tsB,std_noise=std_noise)
 
         # Check which of the indices have found a new minimum
         idsToUpdate = distanceProfile < mp
@@ -247,7 +247,7 @@ def stmp(tsA, m, tsB=None):
     return _matrixProfile(tsA,m,order.linearOrder,distanceProfile.massDistanceProfile,tsB)
 
 
-def stamp(tsA, m, tsB=None, sampling=0.2, n_threads=None, random_state=None):
+def stamp(tsA, m, tsB=None, sampling=0.2, n_threads=None, random_state=None, std_noise=0):
     """
     Calculate the Matrix Profile using the more efficient MASS calculation. Distance profiles are computed in a random order.
 
@@ -264,9 +264,9 @@ def stamp(tsA, m, tsB=None, sampling=0.2, n_threads=None, random_state=None):
         raise ValueError('Sampling value must be a percentage in decimal format from 0 to 1.')
     
     if n_threads is None:
-        return _matrixProfile_sampling(tsA,m,order.randomOrder,distanceProfile.massDistanceProfile,tsB,sampling=sampling,random_state=random_state)
-    
-    return _stamp_parallel(tsA, m, tsB=tsB, sampling=sampling, n_threads=n_threads, random_state=random_state)
+        return _matrixProfile_sampling(tsA,m,order.randomOrder,distanceProfile.massDistanceProfile,tsB,sampling=sampling,random_state=random_state, std_noise=std_noise)
+    else:
+        return _stamp_parallel(tsA, m, tsB=tsB, sampling=sampling, n_threads=n_threads, random_state=random_state, std_noise=std_noise)
 
 
 def stomp(tsA, m, tsB=None, std_noise=0):
