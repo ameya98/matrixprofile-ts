@@ -434,3 +434,4 @@ def scrimp_plus_plus(ts, window_size, step_size_fraction=0.25, runtime=None, ran
         if time_is_exceeded(start_time, runtime):
             return matrix_profile, mp_index
 
+    return matrix_profile, mp_index
