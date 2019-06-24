@@ -71,10 +71,13 @@ def calc_distance_profile(X, y, n, m, meanx, sigmax, std_noise=0):
     # Noise correction.
     dist -= (2 + 2 * m) * np.square(std_noise / np.maximum(sigmay, sigmax))
 
-    # Correct negative values.
-    dist[dist < 0] = 0
+    # Cast to real.
+    dist = np.real(dist)
 
-    return np.real(np.sqrt(dist))
+    # Correct negative values.
+    dist[dist <= 0] = 0
+
+    return np.sqrt(dist)
 
 
 def apply_exclusion_zone(idx, exclusion_zone, profile_len, distance_profile):
@@ -396,6 +399,9 @@ def scrimp_plus_plus(ts, window_size, step_size_fraction=0.25, runtime=None, ran
         # Apply exclusion zone.
         refine_distance = apply_exclusion_zone(idx, exclusion_zone, profile_len, refine_distance)
 
+        # Apply exclusion zone near the neighbour as well.
+        refine_distance = apply_exclusion_zone(idx_nn, exclusion_zone, profile_len, refine_distance)
+
         # Update matrix profile if we can.
         matrix_profile, mp_index = apply_update_positions(matrix_profile, mp_index,
                                                           refine_distance, beginidx, endidx, idx_diff)
@@ -417,9 +423,6 @@ def scrimp_plus_plus(ts, window_size, step_size_fraction=0.25, runtime=None, ran
         curlastz = calc_curlastz(ts, window_size, n, idx, profile_len, curlastz)
         curdistance = calc_curdistance(curlastz, meanx, sigmax, idx,
                                        profile_len, window_size, curdistance, std_noise=std_noise)
-
-        # Apply exclusion zone.
-        curdistance = apply_exclusion_zone(idx, exclusion_zone, profile_len, curdistance)
 
         dist1[0: idx] = np.inf
         dist1[idx:profile_len] = curdistance[idx:profile_len]
