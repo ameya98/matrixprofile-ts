@@ -79,7 +79,7 @@ def calc_distance_profile(X, y, n, m, meanx, sigmax, std_noise=0):
 
 def apply_exclusion_zone(idx, exclusion_zone, profile_len, distance_profile):
     exc_start = np.maximum(0, idx - exclusion_zone)
-    exc_stop = np.maximum(profile_len, idx + exclusion_zone)
+    exc_stop = np.minimum(profile_len, idx + exclusion_zone)
     distance_profile[exc_start:exc_stop] = np.inf
     return distance_profile
 
