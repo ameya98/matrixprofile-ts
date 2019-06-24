@@ -393,6 +393,9 @@ def scrimp_plus_plus(ts, window_size, step_size_fraction=0.25, runtime=None, ran
         refine_distance = calc_refine_distance_begin_idx(refine_distance, dotproduct, beginidx, idx, idx_diff, idx_nn,
                                                          sigmax, meanx, window_size, std_noise=std_noise)
 
+        # Apply exclusion zone.
+        refine_distance = apply_exclusion_zone(idx, exclusion_zone, profile_len, refine_distance)
+
         # Update matrix profile if we can.
         matrix_profile, mp_index = apply_update_positions(matrix_profile, mp_index,
                                                           refine_distance, beginidx, endidx, idx_diff)
@@ -414,6 +417,9 @@ def scrimp_plus_plus(ts, window_size, step_size_fraction=0.25, runtime=None, ran
         curlastz = calc_curlastz(ts, window_size, n, idx, profile_len, curlastz)
         curdistance = calc_curdistance(curlastz, meanx, sigmax, idx,
                                        profile_len, window_size, curdistance, std_noise=std_noise)
+
+        # Apply exclusion zone.
+        curdistance = apply_exclusion_zone(idx, exclusion_zone, profile_len, curdistance)
 
         dist1[0: idx] = np.inf
         dist1[idx:profile_len] = curdistance[idx:profile_len]
