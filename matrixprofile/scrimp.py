@@ -40,7 +40,7 @@ def fast_find_nn_pre(ts, m):
     sumx2 = cum_sumx2[m - 1:n] - np.insert(cum_sumx2[0:n - m], 0, 0)
     meanx = sumx / m
     sigmax2 = (sumx2 / m) - np.power(meanx, 2)
-    sigmax2[sigmax2 < 0] = 0
+    sigmax2[sigmax2 < 1e-12] = 1e-12
     sigmax = np.sqrt(sigmax2)
 
     return X, n, sumx2, sumx, meanx, sigmax2, sigmax
