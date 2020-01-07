@@ -63,7 +63,7 @@ def calc_distance_profile(X, y, n, m, meanx, sigmax, std_noise=0):
     sumy2 = np.sum(np.power(y, 2))
     meany = sumy / m
     sigmay2 = sumy2 / m - meany ** 2
-    sigmay2[sigmay2 < 1e-12] = 1e-12
+    sigmay2 = max(sigmay2, 1e-12)
     sigmay = np.sqrt(sigmay2)
 
     dist = (z[m - 1:n] - m * meanx * meany) / (sigmax * sigmay)
