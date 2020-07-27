@@ -5,7 +5,7 @@
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 # matrixprofile-ts
 
-matrixprofile-ts is a Python 2 and 3 library for evaluating time series data using the Matrix Profile algorithms developed by the [Keogh](https://www.cs.ucr.edu/~eamonn/MatrixProfile.html) and [Mueen](https://www.cs.unm.edu/~mueen/) research groups at UC-Riverside and the University of New Mexico. Current implementations include MASS, STMP, STAMP, STAMPI, STOMP and SCRIMP++.
+matrixprofile-ts is a Python 2 and 3 library for evaluating time series data using the unidimensional Matrix Profile algorithms developed by the [Keogh](https://www.cs.ucr.edu/~eamonn/MatrixProfile.html) and [Mueen](https://www.cs.unm.edu/~mueen/) research groups at UC-Riverside and the University of New Mexico. Current implementations include MASS, STMP, STAMP, STAMPI, STOMP and SCRIMP++.
 
 Read the Target blog post [here](https://tech.target.com/2018/12/11/matrix-profile.html).
 
